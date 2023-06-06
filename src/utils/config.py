@@ -183,7 +183,7 @@ class AugmentationConfig:
             default="resources/nllb/letter_replacement/clusterization.pkl",
             help="Path to cluster symbols.",
         )
-
+        '''
         arg_parser.add_argument(
             "--train-data-path",
             type=str,
@@ -204,5 +204,5 @@ class AugmentationConfig:
             default=f"resources/data/test_dataset.jsonl",
             help="Path to data_sets.",
         )
-
+        '''
         return arg_parser
