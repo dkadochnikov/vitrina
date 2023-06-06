@@ -39,7 +39,7 @@ def train(
         batch_size=config.batch_size,
         collate_fn=train_dataset.collate_function,  # type: ignore
         num_workers=config.num_workers,
-        shuffle=True,
+        shuffle=False,
     )
     val_dataloader = None
     if val_dataset is not None:
