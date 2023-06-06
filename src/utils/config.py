@@ -18,6 +18,7 @@ class VTRConfig:
     max_slices_count_per_word: int = None
     no_verbose: bool = False
     save_plots: bool = False
+    plot_every: int = 100
 
     @classmethod
     def from_arguments(cls, args: Namespace) -> "VTRConfig":
@@ -49,6 +50,7 @@ class VTRConfig:
         )
         arg_parser.add_argument("--no-verbose", action="store_true", help="Build plots for pre-training.")
         arg_parser.add_argument("--save-plots", action="store_true", help="Save plots.")
+        arg_parser.add_argument("--plot-every", type=int, help="Plot patches every N steps.")
         return arg_parser
 
 
@@ -68,9 +70,9 @@ class TransformerConfig:
 
     @classmethod
     def add_to_arg_parser(cls, arg_parser: ArgumentParser) -> ArgumentParser:
-        arg_parser.add_argument("--num-layers", type=int, default=4, help="Number of layers in encoder.")
+        arg_parser.add_argument("--num-layers", type=int, default=8, help="Number of layers in encoder.")
         arg_parser.add_argument("--emb-size", type=int, default=768, help="Embedding size.")
-        arg_parser.add_argument("--n-head", type=int, default=8, help="Number of heads in MHA layers.")
+        arg_parser.add_argument("--n-head", type=int, default=12, help="Number of heads in MHA layers.")
         arg_parser.add_argument("--dropout", type=float, default=0.1, help="Dropout rate.")
         arg_parser.add_argument("--num-classes", type=int, default=2, help="Number of labels' classes.")
         return arg_parser
@@ -180,6 +182,27 @@ class AugmentationConfig:
             type=str,
             default="resources/nllb/letter_replacement/clusterization.pkl",
             help="Path to cluster symbols.",
+        )
+
+        arg_parser.add_argument(
+            "--train-data-path",
+            type=str,
+            default=f"resources/data/train_dataset.jsonl",
+            help="Path to data_sets.",
+        )
+
+        arg_parser.add_argument(
+            "--val-data-path",
+            type=str,
+            default=f"resources/data/val_dataset.jsonl",
+            help="Path to data_sets.",
+        )
+
+        arg_parser.add_argument(
+            "--test-data-path",
+            type=str,
+            default=f"resources/data/test_dataset.jsonl",
+            help="Path to data_sets.",
         )
 
         return arg_parser

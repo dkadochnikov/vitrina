@@ -4,7 +4,7 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import IterableDataset, Dataset
 from transformers import PreTrainedTokenizer
 
-from src.datasets.translation_datasets import NLLBDataset, FloresDataset
+from src.data_sets.translation_datasets import NLLBDataset, FloresDataset
 from src.utils.augmentation import TextAugmentationWrapper, AugmentationWord
 from src.utils.slicer import VTRSlicer
 

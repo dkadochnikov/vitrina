@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 
 from src.utils.common import clean_text
 from src.utils.slicer import VTRSlicer
-from src.datasets.common import SLDatasetSample
+from src.data_sets.common import SLDatasetSample
 
 
 class VTRDatasetSL(Dataset):

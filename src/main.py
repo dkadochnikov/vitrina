@@ -4,10 +4,10 @@ from argparse import ArgumentParser, Namespace
 from loguru import logger
 from torch.utils.data import Dataset
 
-from src.datasets.bert_dataset import BERTDataset
-from src.datasets.bert_dataset_sl import BERTDatasetSL
-from src.datasets.vtr_dataset import VTRDataset, VTRDatasetOCR
-from src.datasets.vtr_dataset_sl import VTRDatasetSL
+from src.data_sets.bert_dataset import BERTDataset
+from src.data_sets.bert_dataset_sl import BERTDatasetSL
+from src.data_sets.vtr_dataset import VTRDataset, VTRDatasetOCR
+from src.data_sets.vtr_dataset_sl import VTRDatasetSL
 from src.models.ttr.sequence_labeler import TextTokensSequenceLabeler
 from src.models.vtr.sequence_labeler import VisualTextSequenceLabeler
 from src.utils.common import load_json

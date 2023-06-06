@@ -6,7 +6,7 @@ from loguru import logger
 from torch.utils.data import Dataset
 from transformers import BertTokenizer
 
-from src.datasets.common import SLDatasetSample
+from src.data_sets.common import SLDatasetSample
 from src.utils.common import clean_text
 
 

@@ -12,7 +12,7 @@ from transformers import get_linear_schedule_with_warmup
 
 from src.utils.common import set_deterministic_mode, dict_to_device
 from src.utils.config import TrainingConfig
-from src.datasets.vtr_dataset import VTRDatasetOCR
+from src.data_sets.vtr_dataset import VTRDatasetOCR
 
 WANDB_PROJECT_NAME = "visual-text"
 
@@ -146,6 +146,7 @@ def train(
 
     logger.info(f"Saving model")
     torch.save(model.state_dict(), os.path.join(wandb.run.dir, "last.ckpt"))
+    torch.save(model, os.path.join(wandb.run.dir, "pretrained.pt"))
 
 
 @torch.no_grad()

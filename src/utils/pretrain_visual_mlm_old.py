@@ -6,7 +6,7 @@ from argparse import ArgumentParser, Namespace
 from src.utils.config import TransformerConfig, TrainingConfig, VTRConfig
 from src.utils.pretrain import train
 from src.utils.common import load_json
-from src.datasets.vtr_dataset import VTRDataset, VTRDatasetOCR
+from src.data_sets.vtr_dataset import VTRDataset, VTRDatasetOCR
 from src.models.pretraining import MaskedVisualLM
 from src.models.vtr.ocr import OCRHead
 
@@ -63,17 +63,20 @@ def pretrain_vtr(args: Namespace, train_data: list, val_data: list = None, test_
         val_dataset = VTRDatasetOCR(val_data, ratio=vtr.ratio, *dataset_args) if val_data else None
         test_dataset = VTRDatasetOCR(test_data, ratio=vtr.ratio, *dataset_args) if test_data else None
 
-        char2int = {char: i + 1 for i, char in enumerate(char2array.keys())}
+        charset = train_dataset.char_set | val_dataset.char_set | test_dataset.char_set
+        char2int = {char: i + 1 for i, char in enumerate(charset)}
+        # char2int = {char: i + 1 for i, char in enumerate(char2array.keys())}
 
         logger.info(
             f"OCR parameters: hidden size: {vtr.hidden_size_ocr}, # layers: {vtr.num_layers_ocr}, "
-            f"# classes: {len(char2array.keys())}"
+            f"# classes: {len(charset)}"  # char2array.keys()
         )
         ocr = OCRHead(
             input_size=vtr.font_size,
             hidden_size=vtr.hidden_size_ocr,
             num_layers=vtr.num_layers_ocr,
-            num_classes=len(char2array.keys()),
+            # num_classes=len(char2array.keys()),
+            num_classes=len(charset),
         )
 
         model = MaskedVisualLM(
@@ -85,6 +88,7 @@ def pretrain_vtr(args: Namespace, train_data: list, val_data: list = None, test_
             model_config.emb_size,
             vtr.no_verbose,
             vtr.save_plots,
+            vtr.plot_every,
             training_config.random_state,
             ocr,
             char2int,

@@ -1,3 +1,7 @@
+from src.data_sets.vtr_dataset import VTRDatasetOCR
+from src.models.pretraining import MaskedVisualLM
+from src.models.vtr.ocr import OCRHead
+
 import json
 import pickle
 from argparse import ArgumentParser, Namespace
@@ -14,9 +18,6 @@ from src.data_sets.common import (
 )
 from src.data_sets.translation_datasets import FloresDataset, NLLBDatasetRuEn
 from torch.utils.data import IterableDataset, Dataset
-from src.models.embedders.ttr import TTREmbedder
-from src.models.embedders.vtr import VTREmbedder
-from src.models.tasks import SequenceClassifier
 from src.utils.augmentation import init_augmentations
 from src.utils.config import TransformerConfig, TrainingConfig, VTRConfig, AugmentationConfig
 from src.utils.pretrain import train
@@ -53,6 +54,8 @@ def configure_arg_parser() -> ArgumentParser:
 
     arg_parser.add_argument("--vtr", action="store_true", help="Use Visual Token Representations.")
 
+    arg_parser.add_argument("--no-ocr", action="store_true", help="Do not use OCR with visual models.")
+
     arg_parser = VTRConfig.add_to_arg_parser(arg_parser)
     arg_parser = TransformerConfig.add_to_arg_parser(arg_parser)
     arg_parser = TrainingConfig.add_to_arg_parser(arg_parser)
@@ -60,9 +63,11 @@ def configure_arg_parser() -> ArgumentParser:
     return arg_parser
 
 
-def train_langdetect(args: Namespace):
+def pretrain_vtr(args: Namespace):
+    logger.info("Pre-training masked language model for VTR.")
     model_config = TransformerConfig.from_arguments(args)
     training_config = TrainingConfig.from_arguments(args)
+    vtr = VTRConfig.from_arguments(args)
     augmentation_config = AugmentationConfig.from_arguments(args)
 
     with open(args.probas, "rb") as f:
@@ -77,9 +82,6 @@ def train_langdetect(args: Namespace):
     with open(augmentation_config.clusters, "rb") as f:
         cluster_symbols = pickle.load(f)
 
-    vtr = VTRConfig.from_arguments(args)
-    channels = (1, 64, 128, vtr.out_channels)
-
     augmentations = init_augmentations(
         expected_changes_per_word=augmentation_config.expected_changes_per_word,
         cluster_symbols=cluster_symbols,
@@ -92,7 +94,6 @@ def train_langdetect(args: Namespace):
     val_dataset: Dataset
     test_dataset: Dataset
 
-    embedder: TTREmbedder | VTREmbedder
     with open("resources/perc_ru_en.pkl", "rb") as f:
         perc_ru_en = pickle.load(f)
     train_dataset = NLLBDatasetRuEn(probas=perc_ru_en)
@@ -120,28 +121,59 @@ def train_langdetect(args: Namespace):
         val_dataset = FloresDataset(lang2label, split="dev", dataset_dir=args.dataset_dir)
         test_dataset = FloresDataset(lang2label, split="devtest", dataset_dir=args.dataset_dir)
 
-    if args.vtr:
+    dataset_args = (char2array, vtr.window_size, vtr.stride, training_config.max_seq_len)
+    if args.no_ocr:
         train_dataset = SlicesIterableDataset(train_dataset, char2array)
         val_dataset = SlicesDataset(val_dataset, char2array)
         test_dataset = SlicesDataset(test_dataset, char2array)
 
-        embedder = VTREmbedder(
-            height=vtr.font_size,
-            width=vtr.window_size,
-            conv_kernel_size=vtr.conv_kernel_size,
-            pool_kernel_size=vtr.pool_kernel_size,
-            emb_size=model_config.emb_size,
-            channels=channels,
+        model = MaskedVisualLM(
+            model_config.n_head,
+            model_config.num_layers,
+            model_config.dropout,
+            vtr.font_size,
+            vtr.window_size,
+            model_config.emb_size,
+            vtr.no_verbose,
+            vtr.save_plots,
+            training_config.random_state,
         )
     else:
-        train_dataset = TokenizedIterableDataset(train_dataset, nllb_tokenizer, training_config.max_seq_len)
-        val_dataset = TokenizedDataset(val_dataset, nllb_tokenizer, training_config.max_seq_len)
-        test_dataset = TokenizedDataset(test_dataset, nllb_tokenizer, training_config.max_seq_len)
+        train_dataset = VTRDatasetOCR(train_data, ratio=vtr.ratio, *dataset_args)
+        val_dataset = VTRDatasetOCR(val_data, ratio=vtr.ratio, *dataset_args) if val_data else None
+        test_dataset = VTRDatasetOCR(test_data, ratio=vtr.ratio, *dataset_args) if test_data else None
 
-        embedder = TTREmbedder(train_dataset.tokenizer.vocab_size, model_config.emb_size)
+        charset = train_dataset.char_set | val_dataset.char_set | test_dataset.char_set
+        char2int = {char: i + 1 for i, char in enumerate(charset)}
+        # char2int = {char: i + 1 for i, char in enumerate(char2array.keys())}
 
-    model_config.num_classes = train_dataset.get_num_classes()
-    model = SequenceClassifier(model_config, embedder, training_config.max_seq_len)
+        logger.info(
+            f"OCR parameters: hidden size: {vtr.hidden_size_ocr}, # layers: {vtr.num_layers_ocr}, "
+            f"# classes: {len(charset)}"  # char2array.keys()
+        )
+        ocr = OCRHead(
+            input_size=vtr.font_size,
+            hidden_size=vtr.hidden_size_ocr,
+            num_layers=vtr.num_layers_ocr,
+            # num_classes=len(char2array.keys()),
+            num_classes=len(charset),
+        )
+
+        model = MaskedVisualLM(
+            model_config.n_head,
+            model_config.num_layers,
+            model_config.dropout,
+            vtr.font_size,
+            vtr.window_size,
+            model_config.emb_size,
+            vtr.no_verbose,
+            vtr.save_plots,
+            vtr.plot_every,
+            training_config.random_state,
+            ocr,
+            char2int,
+            vtr.alpha,
+        )
 
     train(
         model,
@@ -149,11 +181,11 @@ def train_langdetect(args: Namespace):
         training_config,
         val_dataset=val_dataset,
         test_dataset=test_dataset,
-        ocr_flag=False,
+        ocr_flag=not args.no_ocr,
     )
 
 
 if __name__ == "__main__":
     logger.info("Loading data...")
     _args = configure_arg_parser().parse_args()
-    train_langdetect(_args)
+    pretrain_vtr(_args)

@@ -25,6 +25,7 @@ class MaskedVisualLM(nn.Module):
         emb_size: int = 512,
         no_verbose: bool = False,
         save_plots: bool = False,
+        plot_every: int = 100,
         seed: int = 21,
         ocr: OCRHead = None,
         char2int: dict = None,
@@ -65,6 +66,7 @@ class MaskedVisualLM(nn.Module):
             os.makedirs(self.val_folder_name)
         else:
             self.folder_name = None
+        self.plot_every = plot_every
         self.first_val_batch = True
         self.seed = seed
 
@@ -121,7 +123,7 @@ class MaskedVisualLM(nn.Module):
             result["loss"] += self.alpha * result["ctc_loss"]
 
         if self.training:
-            if self.iter % 100 == 0 and self.verbose:
+            if self.iter % self.plot_every == 0 and self.verbose:
                 plot_slices(
                     (masked_slices[0], masked_slices[-1]),
                     (masked_originals[0], masked_originals[-1]),

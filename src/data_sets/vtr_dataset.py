@@ -4,7 +4,7 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from src.datasets.common import DatasetSample
+from src.data_sets.common import DatasetSample
 from src.utils.common import clean_text
 from src.utils.slicer import VTRSlicer, VTRSlicerWithText
 
@@ -38,7 +38,7 @@ class VTRDataset(Dataset):
         logger.info(f"Initializing VTRDataset with {len(labeled_texts)} samples, use max seq len {max_seq_len}")
         self.texts = []
         self.labels = []
-        for sample in tqdm(labeled_texts):
+        for sample in tqdm(labeled_texts[0]):
             cleaned_text = clean_text(sample["text"])
             if cleaned_text:
                 self.texts.append(cleaned_text)

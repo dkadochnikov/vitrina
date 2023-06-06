@@ -82,3 +82,47 @@ class FloresDataset(Dataset):
 
     def __len__(self) -> int:
         return len(self.data)
+
+
+class NLLBDatasetRuEn(IterableDataset):
+    def __init__(
+        self,
+        probas: dict,
+        k: float = 0.3,
+    ):
+        self.datasets = dict()
+        self.pairs = list(probas.keys())
+        self.probas = []
+        self.lang2label = {"eng_Latn": 0, "rus_Cyrl": 1}
+        self.label2lang = {0: "eng_Latn", 1: "rus_Cyrl"}
+        for pair in tqdm(self.pairs):
+            dataset = load_dataset("allenai/nllb", pair, split="train", streaming=True)
+            self.datasets[pair] = iter(dataset)
+            self.probas.append(probas[pair] ** k)
+
+        sum_probas = sum(self.probas)
+        self.probas = [prob / sum_probas for prob in self.probas]
+
+    def get_num_classes(self):
+        return len(self.lang2label)
+
+    def get_lang2label(self):
+        return self.lang2label
+
+    def __iter__(self):
+        while True:
+            random_pair = np.random.choice(self.pairs, p=self.probas)
+            try:
+                info = next(self.datasets[random_pair])
+            except StopIteration:
+                dataset = load_dataset("allenai/nllb", random_pair, split="train", streaming=True)
+                self.datasets[random_pair] = iter(dataset)
+
+            for elem in info["translation"].items():
+                text = clean_text(elem[1])
+                if len(text) == 0:
+                    continue
+                if elem[0] not in self.lang2label:
+                    continue
+                label = self.lang2label[elem[0]]
+                yield text, label

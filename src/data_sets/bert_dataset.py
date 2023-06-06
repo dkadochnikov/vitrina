@@ -3,7 +3,7 @@ from loguru import logger
 from torch.utils.data import Dataset
 from transformers import PreTrainedTokenizer
 
-from src.datasets.common import DatasetSample
+from src.data_sets.common import DatasetSample
 from src.utils.common import clean_text
 
 
