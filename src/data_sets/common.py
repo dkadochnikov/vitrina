@@ -6,7 +6,7 @@ from transformers import PreTrainedTokenizer
 
 from src.data_sets.translation_datasets import NLLBDataset, FloresDataset
 from src.utils.augmentation import TextAugmentationWrapper, AugmentationWord
-from src.utils.slicer import VTRSlicer
+from src.utils.slicer import VTRSlicer, VTRSlicerWithText
 
 
 class DatasetSample(TypedDict):
@@ -130,10 +130,12 @@ class Slices:
         window_size: int = 32,
         stride: int = 5,
         max_seq_len: int = 512,
+        ratio: float = 0.7,
     ):
         self.dataset = dataset
         self.max_seq_len = max_seq_len
         self.slicer = VTRSlicer(char2array=char2array, window_size=window_size, stride=stride)
+        self.slicer_ocr = VTRSlicerWithText(char2array=char2array, window_size=window_size, stride=stride, ratio=ratio)
 
     def get_num_classes(self):
         return self.dataset.get_num_classes()
@@ -156,6 +158,15 @@ class SlicesIterableDataset(Slices, IterableDataset):
                 slices = slices[: self.max_seq_len]
                 yield slices, label
 
+    def collate_function(
+        self, batch: list[tuple[torch.Tensor, int, list[str]]]
+    ) -> dict[str, torch.Tensor | list[list[str]]]:
+        slices, labels, texts = [list(item) for item in zip(*batch)]
+
+        collated_batch = collate_batch_common(slices, labels)
+        collated_batch["texts"] = texts
+
+        return collated_batch
 
 class SlicesDataset(Slices, Dataset):
     def __len__(self) -> int:
@@ -167,3 +178,41 @@ class SlicesDataset(Slices, Dataset):
         slices = self.slicer(text)
         slices = slices[: self.max_seq_len]
         return slices, label
+
+
+class SlicesIterableDatasetOCR(Slices, IterableDataset):
+    def __iter__(self):
+        iterator = iter(self.dataset)
+        while True:
+            try:
+                text, label = next(iterator)
+            except StopIteration:
+                return
+            else:
+                slices, slice_text = self.slicer_ocr(text)
+                slices = slices[: self.max_seq_len]
+                slice_text = slice_text[: self.max_seq_len]
+                yield slices, label, slice_text
+
+
+class SlicesDatasetOCR(Slices, Dataset):
+    def __len__(self) -> int:
+        return self.dataset.__len__()
+
+    def __getitem__(self, index) -> tuple[torch.Tensor, int]:
+        text, label = self.dataset.__getitem__(index)
+
+        slices, slice_text = self.slicer_ocr(text)
+        slices = slices[: self.max_seq_len]
+        slice_text = slice_text[: self.max_seq_len]
+        return slices, label, slice_text
+
+    def collate_function(
+        self, batch: list[tuple[torch.Tensor, int, list[str]]]
+    ) -> dict[str, torch.Tensor | list[list[str]]]:
+        slices, labels, texts = [list(item) for item in zip(*batch)]
+
+        collated_batch = collate_batch_common(slices, labels)
+        collated_batch["texts"] = texts
+
+        return collated_batch

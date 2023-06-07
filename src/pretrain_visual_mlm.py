@@ -13,8 +13,8 @@ from src.data_sets.common import (
     AugmentationDataset,
     SlicesDataset,
     SlicesIterableDataset,
-    TokenizedDataset,
-    TokenizedIterableDataset,
+    SlicesIterableDatasetOCR,
+    SlicesDatasetOCR,
 )
 from src.data_sets.translation_datasets import FloresDataset, NLLBDatasetRuEn
 from torch.utils.data import IterableDataset, Dataset
@@ -139,9 +139,9 @@ def pretrain_vtr(args: Namespace):
             training_config.random_state,
         )
     else:
-        train_dataset = VTRDatasetOCR(train_data, ratio=vtr.ratio, *dataset_args)
-        val_dataset = VTRDatasetOCR(val_data, ratio=vtr.ratio, *dataset_args) if val_data else None
-        test_dataset = VTRDatasetOCR(test_data, ratio=vtr.ratio, *dataset_args) if test_data else None
+        train_dataset = SlicesIterableDatasetOCR(train_dataset, char2array)
+        val_dataset = SlicesDatasetOCR(val_dataset, char2array)
+        test_dataset = SlicesDatasetOCR(test_dataset, char2array)
 
         charset = train_dataset.char_set | val_dataset.char_set | test_dataset.char_set
         char2int = {char: i + 1 for i, char in enumerate(charset)}
