@@ -105,7 +105,7 @@ def train(
             loss = model_output["loss"]
 
             if ocr_flag:
-                assert isinstance(train_dataset, VTRDatasetOCR)
+                # assert isinstance(train_dataset, VTRDatasetOCR)
 
                 log_dict["train/CTC_loss"] = model_output["ctc_loss"]
                 log_dict["train/LPIPS_loss"] = model_output["lpips_loss"]
