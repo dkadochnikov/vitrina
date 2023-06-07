@@ -145,8 +145,8 @@ def train(
         evaluate_model(model, test_dataloader, device, log=True, group="test", ocr_flag=ocr_flag)
 
     logger.info(f"Saving model")
-    torch.save(model.state_dict(), os.path.join(wandb.run.dir, "last.ckpt"))
-    torch.save(model, os.path.join(wandb.run.dir, "pretrained.pt"))
+    torch.save(model.state_dict(), os.path.join("resources/", "last.ckpt"))
+    torch.save(model, os.path.join("resources/", "pretrained.pt"))
 
 
 @torch.no_grad()
