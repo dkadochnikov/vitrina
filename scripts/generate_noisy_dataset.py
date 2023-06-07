@@ -92,6 +92,27 @@ if __name__ == "__main__":
         help="Directory for saving noisy dataset",
     )
 
+    arg_parser.add_argument(
+        "--train-data-path",
+        type=str,
+        default=f"resources/data/train_dataset.jsonl",
+        help="Path to data_sets.",
+    )
+
+    arg_parser.add_argument(
+        "--val-data-path",
+        type=str,
+        default=f"resources/data/val_dataset.jsonl",
+        help="Path to data_sets.",
+    )
+
+    arg_parser.add_argument(
+        "--test-data-path",
+        type=str,
+        default=f"resources/data/test_dataset.jsonl",
+        help="Path to data_sets.",
+    )
+
     arg_parser = AugmentationConfig.add_to_arg_parser(arg_parser)
     args = arg_parser.parse_args()
     add_noise(**vars(args))

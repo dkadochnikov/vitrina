@@ -143,20 +143,20 @@ def pretrain_vtr(args: Namespace):
         val_dataset = SlicesDatasetOCR(val_dataset, char2array)
         test_dataset = SlicesDatasetOCR(test_dataset, char2array)
 
-        charset = train_dataset.char_set | val_dataset.char_set | test_dataset.char_set
-        char2int = {char: i + 1 for i, char in enumerate(charset)}
-        # char2int = {char: i + 1 for i, char in enumerate(char2array.keys())}
+        #charset = train_dataset.char_set | val_dataset.char_set | test_dataset.char_set
+        #char2int = {char: i + 1 for i, char in enumerate(charset)}
+        char2int = {char: i + 1 for i, char in enumerate(char2array.keys())}
 
         logger.info(
             f"OCR parameters: hidden size: {vtr.hidden_size_ocr}, # layers: {vtr.num_layers_ocr}, "
-            f"# classes: {len(charset)}"  # char2array.keys()
+            f"# classes: {len(char2array.keys())}"  # char2array.keys()
         )
         ocr = OCRHead(
             input_size=vtr.font_size,
             hidden_size=vtr.hidden_size_ocr,
             num_layers=vtr.num_layers_ocr,
-            # num_classes=len(char2array.keys()),
-            num_classes=len(charset),
+            num_classes=len(char2array.keys()),
+            # num_classes=len(charset),
         )
 
         model = MaskedVisualLM(
