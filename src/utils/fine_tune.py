@@ -46,7 +46,7 @@ def train_vtr_encoder(args: Namespace, train_data: list, val_data: list = None, 
     val_dataset: Dataset = VTRDataset(val_data, *dataset_args) if val_data else None
     test_dataset: Dataset = VTRDataset(test_data, *dataset_args) if test_data else None
 
-    path = "wandb/run-20230602_193133-27p8gai1/files/pretrained.pt"
+    path = "resources/pretrained.pt"
     pretrained = torch.load(path)
     model = ToxicClassifier(model_config.emb_size, 2, pretrained)
 
