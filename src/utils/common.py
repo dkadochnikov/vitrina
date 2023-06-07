@@ -126,8 +126,8 @@ def compute_ctc_loss(
     input_lengths = torch.LongTensor([log_probs.shape[0]] * log_probs.shape[1])
 
     chars = list("".join(np.concatenate(texts).flatten()))
-    # targets = torch.LongTensor([char2int.get(c, char2int["UNK"]) for c in chars])
-    targets = torch.LongTensor([char2int[c] for c in chars])
+    targets = torch.LongTensor([char2int.get(c, char2int["UNK"]) for c in chars])
+    # targets = torch.LongTensor([char2int[c] for c in chars])
 
     get_len = np.vectorize(len)
     target_lengths = []
