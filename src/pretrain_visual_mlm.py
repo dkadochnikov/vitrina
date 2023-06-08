@@ -182,6 +182,7 @@ def pretrain_vtr(args: Namespace):
         val_dataset=val_dataset,
         test_dataset=test_dataset,
         ocr_flag=not args.no_ocr,
+        checkpoint_path=training_config.checkpoint_path,
     )
 
 

@@ -98,6 +98,8 @@ class TrainingConfig:
 
     no_average: bool = False
 
+    checkpoint_path: str = None
+
     @classmethod
     def from_arguments(cls, args: Namespace) -> "TrainingConfig":
         config_fields = [it.name for it in fields(cls)]
@@ -124,6 +126,7 @@ class TrainingConfig:
         arg_parser.add_argument(
             "--no-average", action="store_true", help="Do not use averaging for evaluation metrics."
         )
+        arg_parser.add_argument("--checkpoint-path", type=str, help="Path to checkpoint.")
         return arg_parser
 
 

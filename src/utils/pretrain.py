@@ -25,6 +25,7 @@ def train(
     val_dataset: Dataset = None,
     test_dataset: Dataset = None,
     ocr_flag: bool = False,
+    checkpoint_path: str = None,
 ):
     logger.info(f"Fix random state: {config.random_state}")
     set_deterministic_mode(config.random_state)
@@ -88,6 +89,9 @@ def train(
     pbar = tqdm(total=num_training_steps)
     batch_num = 0
     log_dict = {}
+    if checkpoint_path:
+        checkpoint = torch.load(checkpoint_path)
+        model.load_state_dict(checkpoint)
     need_next_iteration = True
     while need_next_iteration:
         for batch in train_dataloader:
