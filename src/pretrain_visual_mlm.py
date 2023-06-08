@@ -5,6 +5,7 @@ from src.models.vtr.ocr import OCRHead
 import json
 import pickle
 from argparse import ArgumentParser, Namespace
+import torch
 
 from loguru import logger
 from transformers import NllbTokenizer
@@ -122,6 +123,11 @@ def pretrain_vtr(args: Namespace):
         test_dataset = FloresDataset(lang2label, split="devtest", dataset_dir=args.dataset_dir)
 
     dataset_args = (char2array, vtr.window_size, vtr.stride, training_config.max_seq_len)
+    iter_num = 0
+    checkpoint = None
+    if training_config.checkpoint_path:
+        checkpoint = torch.load(training_config.checkpoint_path)
+        iter_num = checkpoint["global_step"]
     if args.no_ocr:
         train_dataset = SlicesIterableDataset(train_dataset, char2array)
         val_dataset = SlicesDataset(val_dataset, char2array)
@@ -137,6 +143,7 @@ def pretrain_vtr(args: Namespace):
             vtr.no_verbose,
             vtr.save_plots,
             training_config.random_state,
+            iter_num,
         )
     else:
         train_dataset = SlicesIterableDatasetOCR(train_dataset, char2array)
@@ -170,6 +177,7 @@ def pretrain_vtr(args: Namespace):
             vtr.save_plots,
             vtr.plot_every,
             training_config.random_state,
+            iter_num,
             ocr,
             char2int,
             vtr.alpha,
@@ -182,7 +190,7 @@ def pretrain_vtr(args: Namespace):
         val_dataset=val_dataset,
         test_dataset=test_dataset,
         ocr_flag=not args.no_ocr,
-        checkpoint_path=training_config.checkpoint_path,
+        checkpoint=checkpoint,
     )
 
 

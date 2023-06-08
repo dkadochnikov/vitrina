@@ -27,6 +27,7 @@ class MaskedVisualLM(nn.Module):
         save_plots: bool = False,
         plot_every: int = 100,
         seed: int = 21,
+        iter_num: int = 0,
         ocr: OCRHead = None,
         char2int: dict = None,
         alpha: float = 1,
@@ -53,7 +54,7 @@ class MaskedVisualLM(nn.Module):
         self.criterion = lpips.LPIPS(net="vgg", lpips=False)
         # self.criterion = nn.MSELoss()
         self.alpha = alpha
-        self.iter = 0
+        self.iter = iter_num
         self.val_num = 0
         self.dropout = nn.Dropout(dropout)
 

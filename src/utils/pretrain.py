@@ -25,7 +25,7 @@ def train(
     val_dataset: Dataset = None,
     test_dataset: Dataset = None,
     ocr_flag: bool = False,
-    checkpoint_path: str = None,
+    checkpoint: dict = None,
 ):
     logger.info(f"Fix random state: {config.random_state}")
     set_deterministic_mode(config.random_state)
@@ -86,12 +86,14 @@ def train(
     if not os.path.exists(validation_wandb_path):
         os.makedirs(validation_wandb_path)
 
-    pbar = tqdm(total=num_training_steps)
     batch_num = 0
     log_dict = {}
-    if checkpoint_path:
-        checkpoint = torch.load(checkpoint_path)
-        model.load_state_dict(checkpoint)
+    if checkpoint:
+        model.load_state_dict(checkpoint["model"])
+        batch_num = checkpoint["global_step"]
+        optimizer.load_state_dict(checkpoint["optimizer"])
+        scheduler.load_state_dict(checkpoint["scheduler"])
+    pbar = tqdm(total=num_training_steps, initial=batch_num)
     need_next_iteration = True
     while need_next_iteration:
         for batch in train_dataloader:
@@ -137,7 +139,16 @@ def train(
                 )
 
             if batch_num % config.save_every == 0:
-                torch.save(model.state_dict(), os.path.join(validation_wandb_path, f"batch_{batch_num}.ckpt"))
+                torch.save(
+                    {
+                        "scheduler": scheduler.state_dict(),
+                        "model": model.state_dict(),
+                        "optimizer": optimizer.state_dict(),
+                        "loss": loss,
+                        "global_step": batch_num,
+                    },
+                    os.path.join(validation_wandb_path, f"batch_{batch_num}.ckpt"),
+                )
 
     pbar.close()
     logger.info("Training finished")
@@ -149,6 +160,16 @@ def train(
         evaluate_model(model, test_dataloader, device, log=True, group="test", ocr_flag=ocr_flag)
 
     logger.info(f"Saving model")
+    torch.save(
+        {
+            "scheduler": scheduler.state_dict(),
+            "model": model.state_dict(),
+            "optimizer": optimizer.state_dict(),
+            "loss": loss,
+            "global_step": batch_num,
+        },
+        os.path.join(validation_wandb_path, f"last.ckpt"),
+    )
     torch.save(model.state_dict(), os.path.join("resources/", "last.ckpt"))
     torch.save(model, os.path.join("resources/", "pretrained.pt"))
 
