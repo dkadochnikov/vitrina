@@ -38,7 +38,7 @@ class VTRDataset(Dataset):
         logger.info(f"Initializing VTRDataset with {len(labeled_texts)} samples, use max seq len {max_seq_len}")
         self.texts = []
         self.labels = []
-        for sample in tqdm(labeled_texts[0]):
+        for sample in tqdm(labeled_texts):
             cleaned_text = clean_text(sample["text"])
             if cleaned_text:
                 self.texts.append(cleaned_text)

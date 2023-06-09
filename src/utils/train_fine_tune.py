@@ -24,6 +24,7 @@ def train(
     *,
     val_dataset: Dataset = None,
     test_dataset: Dataset = None,
+    ocr_flag: bool = False,
 ):
     logger.info(f"Fix random state: {config.random_state}")
     set_deterministic_mode(config.random_state)
@@ -38,7 +39,7 @@ def train(
         batch_size=config.batch_size,
         collate_fn=train_dataset.collate_function,  # type: ignore
         num_workers=config.num_workers,
-        shuffle=True,
+        shuffle=False,
     )
     val_dataloader = None
     if val_dataset is not None:
@@ -104,6 +105,12 @@ def train(
             model_output = model(batch)
             loss = model_output["loss"]
 
+            if ocr_flag:
+                # assert isinstance(train_dataset, VTRDatasetOCR)
+
+                log_dict["train/CTC_loss"] = model_output["ctc_loss"]
+                log_dict["train/CE_loss"] = model_output["ce_loss"]
+
             loss.backward()
             optimizer.step()
             scheduler.step()
@@ -123,6 +130,7 @@ def train(
                     device,
                     log=True,
                     group="val",
+                    ocr_flag=ocr_flag,
                 )
             if batch_num % config.save_every == 0:
                 torch.save(
@@ -164,6 +172,7 @@ def evaluate_model(
     *,
     log: bool = True,
     group: str = "",
+    ocr_flag: bool = False,
 ) -> dict[str, float]:
     if log:
         logger.info(f"Evaluating the model on {group} set")
@@ -173,17 +182,25 @@ def evaluate_model(
     ground_truth = []
     predictions = []
     loss = 0
+    ctc_loss = 0
+    ce_loss = 0
     for test_batch in tqdm(dataloader, leave=False, position=0):
         batch = dict_to_device(test_batch, except_keys={"max_word_len", "texts"}, device=device)
         output = model(batch)
 
         loss += output["loss"]
+        if ocr_flag:
+            ctc_loss += output["ctc_loss"]
+            ce_loss += output["ce_loss"]
         true_labels = test_batch["labels"]
 
-        predictions.append((output["logits"] > 0).to(torch.float).cpu().detach())
+        predictions.append(torch.argmax(output["logits"], dim=1).to(torch.float).cpu().detach())
         ground_truth.append(true_labels.cpu().detach())
 
     losses_dict = {f"{group}/loss": loss / len(dataloader)}
+    if ocr_flag:
+        losses_dict[f"{group}/_loss"] = ce_loss / len(dataloader)
+        losses_dict[f"{group}/CTC_loss"] = ctc_loss / len(dataloader)
 
     ground_truth = torch.cat(ground_truth).numpy()
     predictions = torch.cat(predictions).numpy()

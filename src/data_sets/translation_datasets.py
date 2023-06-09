@@ -137,3 +137,18 @@ class NLLBDatasetRuEn(IterableDataset):
                     continue
                 label = self.lang2label[elem[0]]
                 yield text, label
+
+
+class ToxicDataset(IterableDataset):
+    def __init__(self, train_data):
+        super(ToxicDataset).__init__()
+        self.train_data = train_data
+
+    def __iter__(self):
+        for sample in self.train_data:
+            try:
+                text = sample['text']
+                label = sample['label']
+            except KeyError:
+                continue
+            yield text, label

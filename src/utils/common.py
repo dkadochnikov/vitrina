@@ -14,6 +14,7 @@ import ujson
 from PIL import ImageFont, Image, ImageDraw
 from loguru import logger
 from torch import nn
+from torch.nn.utils.rnn import pad_sequence
 
 from src.models.vtr.ocr import OCRHead
 
@@ -135,6 +136,26 @@ def compute_ctc_loss(
         target_lengths.append(torch.from_numpy(get_len(arr)))
     target_lengths_concat = torch.cat(target_lengths, dim=0)
     ctc_loss = criterion(log_probs, targets, input_lengths, target_lengths_concat)
+
+    return ctc_loss / len(texts)
+
+
+def compute_ctc_loss_vtr(
+    criterion: torch.nn.modules.loss.CTCLoss, ocr: OCRHead, embeddings: torch.Tensor, texts: list, char2int: dict
+):
+    logits = ocr(embeddings)
+    logits = logits - logits.max(dim=2, keepdim=True).values
+    log_probs = torch.nn.functional.log_softmax(logits, dim=2)
+    input_lengths = torch.LongTensor([log_probs.shape[0]] * log_probs.shape[1])
+
+    chars = list("".join(np.concatenate(texts).flatten()))
+    targets = torch.LongTensor([char2int.get(c, char2int["UNK"]) for c in chars])
+    # targets = torch.LongTensor([char2int[c] for c in chars])
+
+    get_len = np.vectorize(len)
+    target_lengths = pad_sequence([torch.from_numpy(get_len(arr)) for arr in texts], batch_first=True, padding_value=0)
+
+    ctc_loss = criterion(log_probs, targets, input_lengths, target_lengths)
 
     return ctc_loss / len(texts)
 

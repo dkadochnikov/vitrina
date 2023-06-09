@@ -5,7 +5,7 @@ from loguru import logger
 from torch.nn import CTCLoss
 
 from src.models.vtr.ocr import OCRHead
-from src.utils.common import PositionalEncoding, compute_ctc_loss
+from src.utils.common import PositionalEncoding, compute_ctc_loss_vtr
 from src.models.embedders.vtr import VTREmbedder
 
 
@@ -56,7 +56,7 @@ class SequenceClassifier(nn.Module):
             assert isinstance(self.embedder, VTREmbedder)
             result["ce_loss"] = result["loss"]
             assert isinstance(input_batch["texts"], list)
-            result["ctc_loss"] = compute_ctc_loss(
+            result["ctc_loss"] = compute_ctc_loss_vtr(
                 self.ctc_criterion, self.ocr, output["ocr_embeddings"], input_batch["texts"], self.char2int_dict
             )
             result["loss"] = result["ce_loss"] + self.alpha * result["ctc_loss"]

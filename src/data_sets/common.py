@@ -49,7 +49,7 @@ def collate_batch_common(slices: list[torch.Tensor], labels: list[int]):
 class AugmentationDataset(IterableDataset):
     def __init__(
         self,
-        dataset: NLLBDataset,
+        dataset,
         augmentations: list[tuple[AugmentationWord, float]],
         proba_per_text: float,
         expected_changes_per_text: int,
