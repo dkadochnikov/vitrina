@@ -1,16 +1,34 @@
 from torch import nn
+from src.utils.common import PositionalEncoding
 
 
 MAX_COLOUR = 255
 
 
 class ToxicClassifier(nn.Module):
-    def __init__(self, hidden_size, num_classes, pretrained):
+    def __init__(
+            self,
+            num_classes,
+            pretrained=None,
+            emb_size=768,
+            n_head=12,
+            n_layers=8,
+            height=16,
+            width=32,
+    ):
         super().__init__()
-        self.classifier = nn.Linear(hidden_size, num_classes - 1)
-        self.encoder = pretrained.encoder
-        self.emb = pretrained.emb
-        self.positional = pretrained.positional_enc
+        self.classifier = nn.Linear(emb_size, num_classes - 1)
+        if pretrained:
+            self.encoder = pretrained.encoder
+            self.emb = pretrained.emb
+            self.positional = pretrained.positional_enc
+        else:
+            self.encoder = nn.TransformerEncoder(
+                nn.TransformerEncoderLayer(d_model=emb_size, nhead=n_head, dim_feedforward=emb_size),
+                num_layers=n_layers,
+            )
+            self.emb = nn.Linear(height * width, emb_size, bias=False)
+            self.positional = PositionalEncoding(emb_size)
         self.dropout = nn.Dropout(0.1)
         self.criterion = nn.BCEWithLogitsLoss()
         self.num_classes = num_classes

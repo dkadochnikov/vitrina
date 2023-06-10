@@ -63,7 +63,9 @@ def add_noise(
             train_data.append({"text": augmentation_wrapper(sample["text"]), "label": sample["label"]})
         path_out = save_dir + "/train_dataset.jsonl"
         with open(path_out, "w", encoding="utf-8") as outfile:
-            json.dump(train_data, outfile, ensure_ascii=False)
+            for item in train_data:
+                json.dump(item, outfile, ensure_ascii=False)
+                outfile.write('\n')
 
         val_dataset = load_json(val_data_path)
         val_data = []
@@ -71,7 +73,9 @@ def add_noise(
             val_data.append({"text": augmentation_wrapper(sample["text"]), "label": sample["label"]})
         path_out = save_dir + "/val_dataset.jsonl"
         with open(path_out, "w", encoding="utf-8") as outfile:
-            json.dump(val_data, outfile, ensure_ascii=False)
+            for item in val_data:
+                json.dump(item, outfile, ensure_ascii=False)
+                outfile.write('\n')
 
         test_dataset = load_json(test_data_path)
         test_data = []
@@ -79,7 +83,9 @@ def add_noise(
             test_data.append({"text": augmentation_wrapper(sample["text"]), "label": sample["label"]})
         path_out = save_dir + "/test_dataset.jsonl"
         with open(path_out, "w", encoding="utf-8") as outfile:
-            json.dump(test_data, outfile, ensure_ascii=False)
+            for item in test_data:
+                json.dump(item, outfile, ensure_ascii=False)
+                outfile.write('\n')
 
 
 if __name__ == "__main__":
