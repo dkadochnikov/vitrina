@@ -10,17 +10,17 @@ AVER_LETTER_WIDTH = 6
 
 class ToxicClassifier(nn.Module):
     def __init__(
-            self,
-            num_classes,
-            pretrained=None,
-            emb_size=768,
-            n_head=12,
-            n_layers=8,
-            height=16,
-            width=32,
-            ocr=None,
-            char2int: dict = None,
-            alpha: float = 1,
+        self,
+        num_classes,
+        pretrained=None,
+        emb_size=768,
+        n_head=12,
+        n_layers=8,
+        height=16,
+        width=32,
+        ocr=None,
+        char2int: dict = None,
+        alpha: float = 1,
     ):
         super().__init__()
         self.classifier = nn.Linear(emb_size, num_classes - 1)
@@ -44,7 +44,6 @@ class ToxicClassifier(nn.Module):
         self.alpha = alpha
         self.letter_count = width // AVER_LETTER_WIDTH
         self.linear = nn.Linear(emb_size, 2 * self.letter_count * height)
-
 
     def forward(self, input_batch):
         batch_size, slice_count, height, width = input_batch["slices"].shape
@@ -71,6 +70,6 @@ class ToxicClassifier(nn.Module):
             result["ctc_loss"] = compute_ctc_loss(
                 self.ctc_criterion, self.ocr, encoder_output, input_batch["texts"], self.char2int
             )
-            result["loss"] = result["ce_loss"] + result["ctc_loss"]
+            result["loss"] = result["ce_loss"] + self.alpha * result["ctc_loss"]
 
         return result
