@@ -49,7 +49,9 @@ def configure_arg_parser() -> ArgumentParser:
     return arg_parser
 
 
-def train_vtr_encoder(args: Namespace, train_data: list, val_data: list = None, test_data: list = None, pretrained=None):
+def train_vtr_encoder(
+    args: Namespace, train_data: list, val_data: list = None, test_data: list = None, pretrained=None
+):
     model_config = TransformerConfig.from_arguments(args)
     training_config = TrainingConfig.from_arguments(args)
     augmentation_config = AugmentationConfig.from_arguments(args)
@@ -100,9 +102,9 @@ def train_vtr_encoder(args: Namespace, train_data: list, val_data: list = None, 
         val_dataset = VTRDatasetOCR(val_data, ratio=vtr.ratio, *dataset_args) if val_data else None
         test_dataset = VTRDatasetOCR(test_data, ratio=vtr.ratio, *dataset_args) if test_data else None
 
-        charset = val_dataset.char_set | test_dataset.char_set
-        char2int_dict = {char: i + 1 for i, char in enumerate(charset)}
-        # char2int_dict = {char: i + 1 for i, char in enumerate(char2array.keys())}
+        # charset = val_dataset.char_set | test_dataset.char_set
+        # char2int_dict = {char: i + 1 for i, char in enumerate(charset)}
+        char2int_dict = {char: i + 1 for i, char in enumerate(char2array.keys())}
         logger.info(
             f"OCR parameters: hidden size: {vtr.hidden_size_ocr}, # layers: {vtr.num_layers_ocr}, "
             f"# classes: {len(char2array.keys())}"
@@ -112,8 +114,8 @@ def train_vtr_encoder(args: Namespace, train_data: list, val_data: list = None, 
             input_size=vtr.font_size,
             hidden_size=vtr.hidden_size_ocr,
             num_layers=vtr.num_layers_ocr,
-            # num_classes=len(char2array.keys()),
-            num_classes=len(charset),
+            num_classes=len(char2array.keys()),
+            # num_classes=len(charset),
         )
 
         model = ToxicClassifier(
