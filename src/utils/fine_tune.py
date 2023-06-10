@@ -22,6 +22,8 @@ from src.utils.config import TransformerConfig, TrainingConfig, VTRConfig, Augme
 from src.utils.train_fine_tune import train
 from src.data_sets.translation_datasets import ToxicDataset
 from src.utils.augmentation import init_augmentations
+from src.data_sets.vtr_dataset import VTRDataset, VTRDatasetOCR
+from src.models.vtr.ocr import OCRHead
 
 
 def configure_arg_parser() -> ArgumentParser:
@@ -83,15 +85,49 @@ def train_vtr_encoder(args: Namespace, train_data: list, val_data: list = None, 
         val_dataset: Dataset = VTRDataset(val_data, *dataset_args) if val_data else None
         test_dataset: Dataset = VTRDataset(test_data, *dataset_args) if test_data else None
 
-    model = ToxicClassifier(
-        2,
-        pretrained,
-        emb_size=model_config.emb_size,
-        n_head=model_config.n_head,
-        n_layers=model_config.num_layers,
-        height=vtr.font_size,
-        width=vtr.window_size,
-    )
+        model = ToxicClassifier(
+            2,
+            pretrained,
+            emb_size=model_config.emb_size,
+            n_head=model_config.n_head,
+            n_layers=model_config.num_layers,
+            height=vtr.font_size,
+            width=vtr.window_size,
+        )
+
+    else:
+        train_dataset = SlicesIterableDatasetOCR(train_dataset, char2array)
+        val_dataset = VTRDatasetOCR(val_data, ratio=vtr.ratio, *dataset_args) if val_data else None
+        test_dataset = VTRDatasetOCR(test_data, ratio=vtr.ratio, *dataset_args) if test_data else None
+
+        charset = val_dataset.char_set | test_dataset.char_set
+        char2int_dict = {char: i + 1 for i, char in enumerate(charset)}
+        # char2int_dict = {char: i + 1 for i, char in enumerate(char2array.keys())}
+        logger.info(
+            f"OCR parameters: hidden size: {vtr.hidden_size_ocr}, # layers: {vtr.num_layers_ocr}, "
+            f"# classes: {len(char2array.keys())}"
+        )
+
+        ocr = OCRHead(
+            input_size=vtr.font_size,
+            hidden_size=vtr.hidden_size_ocr,
+            num_layers=vtr.num_layers_ocr,
+            # num_classes=len(char2array.keys()),
+            num_classes=len(charset),
+        )
+
+        model = ToxicClassifier(
+            2,
+            pretrained,
+            emb_size=model_config.emb_size,
+            n_head=model_config.n_head,
+            n_layers=model_config.num_layers,
+            height=vtr.font_size,
+            width=vtr.window_size,
+            ocr=ocr,
+            char2int=char2int_dict,
+            alpha=vtr.alpha,
+        )
 
     train(
         model,
