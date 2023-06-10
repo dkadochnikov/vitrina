@@ -194,6 +194,8 @@ def evaluate_model(
             ce_loss += output["ce_loss"]
         true_labels = test_batch["labels"]
 
+        probs = torch.sigmoid(output["logits"])
+        # print(probs)
         predictions.append(torch.argmax(output["logits"], dim=1).to(torch.float).cpu().detach())
         ground_truth.append(true_labels.cpu().detach())
 
@@ -206,15 +208,14 @@ def evaluate_model(
     predictions = torch.cat(predictions).numpy()
 
     average = "binary" if num_classes == 2 else "macro"
-
     precision, recall, f1_score, _ = precision_recall_fscore_support(ground_truth, predictions, average=average)
     accuracy = accuracy_score(ground_truth, predictions)
-    result = {"accuracy": accuracy, "precision": precision, "recall": recall, "f1": f1_score}
+    result = {"accuracy": accuracy, "precision": precision, "recall": recall, "f1": f1_score, "loss": loss}
 
     if log:
         log_dict = {f"{group}/{k}": v for k, v in result.items()}
         log_dict.update(losses_dict)
         wandb.log(log_dict)
-    logger.info(",\n ".join(f"{k}: {v}" for k, v in result.items() if isinstance(v, float)))
+    logger.info(",\n ".join(f"{k}: {v}" for k, v in result.items()))
 
     return result

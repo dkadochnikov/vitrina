@@ -1,5 +1,6 @@
 from torch import nn
 from torch.nn import CTCLoss
+import torch
 
 from src.utils.common import PositionalEncoding, compute_ctc_loss
 
@@ -23,7 +24,7 @@ class ToxicClassifier(nn.Module):
         alpha: float = 1,
     ):
         super().__init__()
-        self.classifier = nn.Linear(emb_size, num_classes - 1)
+        self.classifier = nn.Linear(emb_size, num_classes)
         if pretrained:
             self.encoder = pretrained.encoder
             self.emb = pretrained.emb
@@ -36,7 +37,7 @@ class ToxicClassifier(nn.Module):
             self.emb = nn.Linear(height * width, emb_size, bias=False)
             self.positional = PositionalEncoding(emb_size)
         self.dropout = nn.Dropout(0.1)
-        self.criterion = nn.BCEWithLogitsLoss()
+        self.criterion = nn.CrossEntropyLoss()
         self.num_classes = num_classes
         self.ocr = ocr
         self.ctc_criterion = CTCLoss(reduction="sum", zero_infinity=True)
@@ -58,7 +59,7 @@ class ToxicClassifier(nn.Module):
         embeddings = encoder_output_drop.mean(dim=1)
 
         logits = self.classifier(embeddings)
-        loss = self.criterion(logits, input_batch["labels"].unsqueeze(1))
+        loss = self.criterion(logits, input_batch["labels"].to(torch.int64))
         result = {"loss": loss, "logits": logits}
 
         if self.ocr:
