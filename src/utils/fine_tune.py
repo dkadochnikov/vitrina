@@ -24,6 +24,7 @@ from src.data_sets.translation_datasets import ToxicDataset
 from src.utils.augmentation import init_augmentations
 from src.data_sets.vtr_dataset import VTRDataset, VTRDatasetOCR
 from src.models.vtr.ocr import OCRHead
+from src.models.pretraining import MaskedVisualLM
 
 
 def configure_arg_parser() -> ArgumentParser:
@@ -146,7 +147,11 @@ def main(args: Namespace):
     train_data = load_json(args.train_data)
     val_data = load_json(args.val_data) if args.val_data else None
     test_data = load_json(args.test_data) if args.test_data else None
-    pretrained = torch.load(args.pretrained_path) if args.pretrained_path else None
+    pretrained = None
+    if args.pretrained_path:
+        pretrained = MaskedVisualLM()
+        state_dict = torch.load(args.pretrained_path)
+        pretrained.load_state_dict(state_dict, strict=False)
 
     train_vtr_encoder(args, train_data, val_data, test_data, pretrained)
 
