@@ -84,7 +84,12 @@ def train_vtr_encoder(
 
     dataset_args = (char2array, vtr.window_size, vtr.stride, training_config.max_seq_len)
     if args.no_ocr:
-        train_dataset = SlicesIterableDataset(train_dataset, char2array)
+        train_dataset = SlicesIterableDataset(
+            train_dataset,
+            char2array,
+            bs=training_config.batch_size,
+            p=training_config.p,
+        )
         val_dataset: Dataset = VTRDataset(val_data, *dataset_args) if val_data else None
         test_dataset: Dataset = VTRDataset(test_data, *dataset_args) if test_data else None
 
@@ -99,7 +104,12 @@ def train_vtr_encoder(
         )
 
     else:
-        train_dataset = SlicesIterableDatasetOCR(train_dataset, char2array)
+        train_dataset = SlicesIterableDatasetOCR(
+            train_dataset,
+            char2array,
+            bs=training_config.batch_size,
+            p=training_config.p,
+        )
         val_dataset = VTRDatasetOCR(val_data, ratio=vtr.ratio, *dataset_args) if val_data else None
         test_dataset = VTRDatasetOCR(test_data, ratio=vtr.ratio, *dataset_args) if test_data else None
 

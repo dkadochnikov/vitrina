@@ -131,11 +131,16 @@ class Slices:
         stride: int = 5,
         max_seq_len: int = 512,
         ratio: float = 0.7,
+        p: float = None,
+        bs: int = None,
     ):
         self.dataset = dataset
         self.max_seq_len = max_seq_len
         self.slicer = VTRSlicer(char2array=char2array, window_size=window_size, stride=stride)
         self.slicer_ocr = VTRSlicerWithText(char2array=char2array, window_size=window_size, stride=stride, ratio=ratio)
+        self.p = p
+        self.bs = bs
+        self.class_iterators = {0: [], 1: []}
 
     def get_num_classes(self):
         return self.dataset.get_num_classes()
@@ -149,14 +154,36 @@ class SlicesIterableDataset(Slices, IterableDataset):
     def __iter__(self):
         iterator = iter(self.dataset)
         while True:
-            try:
-                text, label = next(iterator)
-            except StopIteration:
-                return
+            if self.bs and self.p:
+                try:
+                    text, label = next(iterator)
+                    self.class_iterators[label].append((text, label))
+
+                    if (
+                        len(self.class_iterators[1]) >= self.p * self.bs
+                        and len(self.class_iterators[0]) >= (1 - self.p) * self.bs
+                    ):
+                        for _ in range(int(self.p * self.bs)):
+                            text, label = self.class_iterators[1].pop(0)
+                            slices = self.slicer(text)
+                            slices = slices[: self.max_seq_len]
+                            yield slices, label
+                        for _ in range(int((1 - self.p) * self.bs)):
+                            text, label = self.class_iterators[0].pop(0)
+                            slices = self.slicer(text)
+                            slices = slices[: self.max_seq_len]
+                            yield slices, label
+                except StopIteration:
+                    return
             else:
-                slices = self.slicer(text)
-                slices = slices[: self.max_seq_len]
-                yield slices, label
+                try:
+                    text, label = next(iterator)
+                except StopIteration:
+                    return
+                else:
+                    slices = self.slicer(text)
+                    slices = slices[: self.max_seq_len]
+                    yield slices, label
 
 
 class SlicesDataset(Slices, Dataset):
@@ -175,15 +202,38 @@ class SlicesIterableDatasetOCR(Slices, IterableDataset):
     def __iter__(self):
         iterator = iter(self.dataset)
         while True:
-            try:
-                text, label = next(iterator)
-            except StopIteration:
-                return
+            if self.bs and self.p:
+                try:
+                    text, label = next(iterator)
+                    self.class_iterators[label].append((text, label))
+
+                    if (
+                        len(self.class_iterators[1]) >= self.p * self.bs
+                        and len(self.class_iterators[0]) >= (1 - self.p) * self.bs
+                    ):
+                        for _ in range(int(self.p * self.bs)):
+                            text, label = self.class_iterators[1].pop(0)
+                            slices, slice_text = self.slicer_ocr(text)
+                            slices = slices[: self.max_seq_len]
+                            slice_text = slice_text[: self.max_seq_len]
+                            yield slices, label, slice_text
+                        for _ in range(int((1 - self.p) * self.bs)):
+                            text, label = self.class_iterators[0].pop(0)
+                            slices, slice_text = self.slicer_ocr(text)
+                            slice_text = slice_text[: self.max_seq_len]
+                            yield slices, label, slice_text
+                except StopIteration:
+                    return
             else:
-                slices, slice_text = self.slicer_ocr(text)
-                slices = slices[: self.max_seq_len]
-                slice_text = slice_text[: self.max_seq_len]
-                yield slices, label, slice_text
+                try:
+                    text, label = next(iterator)
+                except StopIteration:
+                    return
+                else:
+                    slices, slice_text = self.slicer_ocr(text)
+                    slices = slices[: self.max_seq_len]
+                    slice_text = slice_text[: self.max_seq_len]
+                    yield slices, label, slice_text
 
     def collate_function(
         self, batch: list[tuple[torch.Tensor, int, list[str]]]

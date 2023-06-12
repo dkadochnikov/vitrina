@@ -83,6 +83,7 @@ class TrainingConfig:
     max_seq_len: int = 512
     batch_size: int = 32
     steps: int = 10000
+    p: float = None
 
     lr: float = 5e-5
     weight_decay: float = 0.01
@@ -127,6 +128,7 @@ class TrainingConfig:
             "--no-average", action="store_true", help="Do not use averaging for evaluation metrics."
         )
         arg_parser.add_argument("--checkpoint-path", type=str, help="Path to checkpoint.")
+        arg_parser.add_argument("--p", type=float, default=None, help="Ratio of toxic samples.")
         return arg_parser
 
 
