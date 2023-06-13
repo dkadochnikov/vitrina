@@ -140,15 +140,29 @@ class NLLBDatasetRuEn(IterableDataset):
 
 
 class ToxicDataset(IterableDataset):
-    def __init__(self, train_data):
+    def __init__(self, train_data, p=0.8):
         super(ToxicDataset).__init__()
         self.train_data = train_data
+        self.p = p
+        self.class_0 = [sample for sample in self.train_data if sample["label"] == 0]
+        self.class_1 = [sample for sample in self.train_data if sample["label"] == 1]
 
     def __iter__(self):
-        for sample in self.train_data:
+        iter_0 = iter(self.class_0)
+        iter_1 = iter(self.class_1)
+        for _ in range(len(self.class_1)):
+            for _ in range(int(1 / self.p)):
+                try:
+                    sample = next(iter_0)
+                    yield sample["text"], sample["label"]
+                except StopIteration:
+                    iter_0 = iter(self.class_0)
+                    sample = next(iter_0)
+                    yield sample["text"], sample["label"]
             try:
-                text = sample['text']
-                label = sample['label']
-            except KeyError:
-                continue
-            yield text, label
+                sample = next(iter_1)
+                yield sample["text"], sample["label"]
+            except StopIteration:
+                iter_1 = iter(self.class_1)
+                sample = next(iter_1)
+                yield sample["text"], sample["label"]
