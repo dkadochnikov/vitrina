@@ -50,13 +50,24 @@ def configure_arg_parser() -> ArgumentParser:
     return arg_parser
 
 
-def train_vtr_encoder(
-    args: Namespace, train_data: list, val_data: list = None, test_data: list = None, pretrained=None
-):
+def train_vtr_encoder(args: Namespace, train_data: list, val_data: list = None, test_data: list = None):
     model_config = TransformerConfig.from_arguments(args)
     training_config = TrainingConfig.from_arguments(args)
     augmentation_config = AugmentationConfig.from_arguments(args)
     vtr = VTRConfig.from_arguments(args)
+
+    pretrained = None
+    if args.pretrained_path:
+        pretrained = MaskedVisualLM(
+            model_config.n_head,
+            model_config.num_layers,
+            model_config.dropout,
+            vtr.font_size,
+            vtr.window_size,
+            model_config.emb_size,
+        )
+        state_dict = torch.load(args.pretrained_path)
+        pretrained.load_state_dict(state_dict, strict=False)
 
     with open(args.char2array, "rb") as f:
         char2array = pickle.load(f)
@@ -157,13 +168,8 @@ def main(args: Namespace):
     train_data = load_json(args.train_data)
     val_data = load_json(args.val_data) if args.val_data else None
     test_data = load_json(args.test_data) if args.test_data else None
-    pretrained = None
-    if args.pretrained_path:
-        pretrained = MaskedVisualLM()
-        state_dict = torch.load(args.pretrained_path)
-        pretrained.load_state_dict(state_dict, strict=False)
 
-    train_vtr_encoder(args, train_data, val_data, test_data, pretrained)
+    train_vtr_encoder(args, train_data, val_data, test_data)
 
 
 if __name__ == "__main__":
