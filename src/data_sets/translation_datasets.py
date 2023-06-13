@@ -5,6 +5,7 @@ from multiprocessing import Pool
 from torch.utils.data import IterableDataset, Dataset
 from tqdm import tqdm
 import os
+import random
 
 
 def load_dataset_fn(pair_name):
@@ -148,6 +149,9 @@ class ToxicDataset(IterableDataset):
         self.class_1 = [sample for sample in self.train_data if sample["label"] == 1]
 
     def __iter__(self):
+        random.shuffle(self.class_0)
+        random.shuffle(self.class_1)
+
         iter_0 = iter(self.class_0)
         iter_1 = iter(self.class_1)
         for _ in range(len(self.class_1)):
@@ -156,6 +160,7 @@ class ToxicDataset(IterableDataset):
                     sample = next(iter_0)
                     yield sample["text"], sample["label"]
                 except StopIteration:
+                    random.shuffle(self.class_0)
                     iter_0 = iter(self.class_0)
                     sample = next(iter_0)
                     yield sample["text"], sample["label"]
@@ -163,6 +168,7 @@ class ToxicDataset(IterableDataset):
                 sample = next(iter_1)
                 yield sample["text"], sample["label"]
             except StopIteration:
+                random.shuffle(self.class_1)
                 iter_1 = iter(self.class_1)
                 sample = next(iter_1)
                 yield sample["text"], sample["label"]
