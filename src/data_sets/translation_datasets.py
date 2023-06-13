@@ -141,7 +141,7 @@ class NLLBDatasetRuEn(IterableDataset):
 
 
 class ToxicDataset(IterableDataset):
-    def __init__(self, train_data, p=0.8):
+    def __init__(self, train_data, p=0.4):
         super(ToxicDataset).__init__()
         self.train_data = train_data
         self.p = p
